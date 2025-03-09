@@ -1,25 +1,15 @@
-# main.py
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import json
 import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
+import gc
 
 app = FastAPI(title="IMDB Sentiment Analysis API")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # You can specify your frontend domain here
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# --------------------------
-# Load Classical Models & Metrics
-# --------------------------
+# Preload classical models (if they're light)
 classical_models = {}
 for name in ['logistic_regression', 'naive_bayes', 'svm']:
     try:
@@ -30,31 +20,27 @@ for name in ['logistic_regression', 'naive_bayes', 'svm']:
 with open('models/classical/classical_metrics.json', 'r') as f:
     classical_metrics = json.load(f)
 
-# --------------------------
-# Load Deep Learning Models, Tokenizer & Metrics
-# --------------------------
+# Lazy loading dictionary for deep models
 deep_models = {}
-for name in ['rnn_lstm', 'bilstm', 'cnn']:
-    try:
-        deep_models[name] = tf.keras.models.load_model(f'models/deep_learning/{name}.h5')
-    except Exception as e:
-        print(f"Error loading deep model {name}: {e}")
-
 with open('models/deep_learning/deep_metrics.json', 'r') as f:
     deep_metrics = json.load(f)
 
 with open('models/deep_learning/tokenizer.pkl', 'rb') as f:
     tokenizer = pickle.load(f)
 
-max_len = 200  # same as used in training deep models
+max_len = 200  # must match training
 
-# --------------------------
-# Request Schema & API Endpoint
-# --------------------------
+def load_deep_model(model_name: str):
+    if model_name not in deep_models:
+        try:
+            deep_models[model_name] = tf.keras.models.load_model(f'models/deep_learning/{model_name}.h5')
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error loading model: {e}")
+    return deep_models[model_name]
+
 class SentimentRequest(BaseModel):
     review: str
-    model: str  # Should be one of the six model names
-
+    model: str  # one of the six model names
 
 @app.post("/predict")
 def predict_sentiment(request: SentimentRequest):
@@ -66,8 +52,8 @@ def predict_sentiment(request: SentimentRequest):
         prediction = pipeline.predict([review_text])[0]
         metrics = classical_metrics.get(model_name, {})
         prob = None
-    elif model_name in deep_models:
-        model = deep_models[model_name]
+    elif model_name in ['rnn_lstm', 'bilstm', 'cnn']:
+        model = load_deep_model(model_name)  # Lazy load model on demand
         seq = tokenizer.texts_to_sequences([review_text])
         padded_seq = pad_sequences(seq, maxlen=max_len, padding='post', truncating='post')
         prediction_prob = model.predict(padded_seq)[0][0]
@@ -76,6 +62,9 @@ def predict_sentiment(request: SentimentRequest):
         metrics = deep_metrics.get(model_name, {})
     else:
         raise HTTPException(status_code=400, detail="Model not found")
+
+    # Optionally, clear memory if models are not used frequently
+    gc.collect()
 
     sentiment = "Positive" if prediction == 1 else "Negative"
     response = {
