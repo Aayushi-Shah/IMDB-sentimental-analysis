@@ -1,7 +1,3 @@
-fastapi
-uvicorn
-scikit-learn
-pandas
-numpy
-joblib
-tensorflow
+version https://git-lfs.github.com/spec/v1
+oid sha256:67a07f5f53a71075993bd06c7b756c6bcc2d5117d4e084a6a8440fd8957f37dd
+size 1312
