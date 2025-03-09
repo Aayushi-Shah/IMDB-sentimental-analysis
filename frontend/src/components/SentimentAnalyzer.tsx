@@ -87,6 +87,8 @@ const SentimentAnalyzer: React.FC = () => {
   // Track whether the review field is empty
   const [isReviewEmpty, setIsReviewEmpty] = useState(false);
 
+  const backendUrl = process.env.REACT_APP_BACKEND_URL
+
   const handleSubmit = async () => {
     // Trim the input to avoid whitespace-only strings
     if (!review.trim()) {
@@ -97,7 +99,7 @@ const SentimentAnalyzer: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post<SentimentResponse>('http://localhost:8000/predict', {
+      const res = await axios.post<SentimentResponse>(`${backendUrl}`, {
         review,
         model: selectedModel,
       });
