@@ -3,4 +3,4 @@ __pycache__
 venv
 .env
 models_cache
-models
+trained_models
