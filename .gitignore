@@ -2,3 +2,5 @@ node_modules
 __pycache__
 venv
 .env
+models_cache
+models

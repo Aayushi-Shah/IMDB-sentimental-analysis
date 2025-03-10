@@ -9,7 +9,6 @@ import {
   TextField,
   MenuItem,
   Select,
-  InputLabel,
   FormControl,
   Card,
   CardContent,
@@ -83,11 +82,9 @@ const SentimentAnalyzer: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState(models[0].value);
   const [responseData, setResponseData] = useState<SentimentResponse | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Track whether the review field is empty
   const [isReviewEmpty, setIsReviewEmpty] = useState(false);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
   const handleSubmit = async () => {
     // Trim the input to avoid whitespace-only strings
@@ -97,11 +94,16 @@ const SentimentAnalyzer: React.FC = () => {
     }
     setIsReviewEmpty(false);
 
+    // Determine model type based on selected model
+    const deepModels = ['rnn_lstm', 'bilstm', 'cnn'];
+    const model_type = deepModels.includes(selectedModel) ? 'deep' : 'classical';
+
     setLoading(true);
     try {
       const res = await axios.post<SentimentResponse>(`${backendUrl}`, {
         review,
         model: selectedModel,
+        model_type: model_type, // Sending model_type here
       });
       setResponseData(res.data);
     } catch (error) {
@@ -181,7 +183,6 @@ const SentimentAnalyzer: React.FC = () => {
                 </Typography>
               )}
               <Typography variant="h6">Model: {responseData.model}</Typography>
-
               <div style={{ marginTop: '2rem' }}>
                 <Typography variant="h5" align="center">
                   Model Performance Metrics

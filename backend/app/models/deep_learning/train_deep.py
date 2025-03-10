@@ -82,51 +82,51 @@ for word, i in word_index.items():
         if embedding_vector is not None:
             embedding_matrix[i] = embedding_vector
 
-# --- Model 1: RNN with LSTM ---
-model_rnn = Sequential([
-    Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
-    LSTM(64),
-    Dense(1, activation='sigmoid')
-])
-model_rnn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-model_rnn.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
-              batch_size=batch_size, epochs=epochs,
-              callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
-score_rnn = model_rnn.evaluate(X_test_pad, np.array(y_test), verbose=0)
-results['rnn_lstm'] = {'accuracy': score_rnn[1]}
-model_rnn.save('models/deep_learning/rnn_lstm.h5')
-print(f'RNN LSTM saved with accuracy: {score_rnn[1]}')
+# # --- Model 1: RNN with LSTM ---
+# model_rnn = Sequential([
+#     Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
+#     LSTM(64),
+#     Dense(1, activation='sigmoid')
+# ])
+# model_rnn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+# model_rnn.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
+#               batch_size=batch_size, epochs=epochs,
+#               callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
+# score_rnn = model_rnn.evaluate(X_test_pad, np.array(y_test), verbose=0)
+# results['rnn_lstm'] = {'accuracy': score_rnn[1]}
+# model_rnn.save('models/deep_learning/rnn_lstm.h5')
+# print(f'RNN LSTM saved with accuracy: {score_rnn[1]}')
 
-# --- Model 2: Bidirectional LSTM ---
-model_bilstm = Sequential([
-    Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
-    Bidirectional(LSTM(64)),
-    Dense(1, activation='sigmoid')
-])
-model_bilstm.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-model_bilstm.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
-                 batch_size=batch_size, epochs=epochs,
-                 callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
-score_bilstm = model_bilstm.evaluate(X_test_pad, np.array(y_test), verbose=0)
-results['bilstm'] = {'accuracy': score_bilstm[1]}
-model_bilstm.save('models/deep_learning/bilstm.h5')
-print(f'BiLSTM saved with accuracy: {score_bilstm[1]}')
+# # --- Model 2: Bidirectional LSTM ---
+# model_bilstm = Sequential([
+#     Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
+#     Bidirectional(LSTM(64)),
+#     Dense(1, activation='sigmoid')
+# ])
+# model_bilstm.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+# model_bilstm.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
+#                  batch_size=batch_size, epochs=epochs,
+#                  callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
+# score_bilstm = model_bilstm.evaluate(X_test_pad, np.array(y_test), verbose=0)
+# results['bilstm'] = {'accuracy': score_bilstm[1]}
+# model_bilstm.save('models/deep_learning/bilstm.h5')
+# print(f'BiLSTM saved with accuracy: {score_bilstm[1]}')
 
-# --- Model 3: CNN ---
-model_cnn = Sequential([
-    Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
-    Conv1D(128, 5, activation='relu'),
-    GlobalMaxPooling1D(),
-    Dense(1, activation='sigmoid')
-])
-model_cnn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-model_cnn.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
-              batch_size=batch_size, epochs=epochs,
-              callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
-score_cnn = model_cnn.evaluate(X_test_pad, np.array(y_test), verbose=0)
-results['cnn'] = {'accuracy': score_cnn[1]}
-model_cnn.save('models/deep_learning/cnn.h5')
-print(f'CNN saved with accuracy: {score_cnn[1]}')
+# # --- Model 3: CNN ---
+# model_cnn = Sequential([
+#     Embedding(max_words, embedding_dim, weights=[embedding_matrix], trainable=False),
+#     Conv1D(128, 5, activation='relu'),
+#     GlobalMaxPooling1D(),
+#     Dense(1, activation='sigmoid')
+# ])
+# model_cnn.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+# model_cnn.fit(X_train_pad, np.array(y_train), validation_data=(X_test_pad, np.array(y_test)),
+#               batch_size=batch_size, epochs=epochs,
+#               callbacks=[EarlyStopping(monitor='val_loss', patience=2)], verbose=2)
+# score_cnn = model_cnn.evaluate(X_test_pad, np.array(y_test), verbose=0)
+# results['cnn'] = {'accuracy': score_cnn[1]}
+# model_cnn.save('models/deep_learning/cnn.h5')
+# print(f'CNN saved with accuracy: {score_cnn[1]}')
 
 # Save the tokenizer for future preprocessing during inference
 with open('models/deep_learning/tokenizer.pkl', 'wb') as f:
