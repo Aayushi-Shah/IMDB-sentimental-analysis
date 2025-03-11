@@ -2,12 +2,12 @@ import os
 import boto3
 import json
 import pickle
-import tensorflow as tf
 import joblib
+import keras
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.sequence import pad_sequences
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,7 +40,7 @@ DEEP_FOLDER = os.getenv('DEEP_FOLDER')
 if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET, CLASSICAL_FOLDER, DEEP_FOLDER]):
     raise ValueError("One or more required S3 environment variables are missing.")
 
-# Initialize boto3 S3 client (region is optional)
+# Initialize boto3 S3 client
 s3_client = boto3.client(
     's3',
     aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -89,60 +89,87 @@ def load_classical_model(model_name: str):
     local_path = get_local_path(filename)
     s3_key = f"{CLASSICAL_FOLDER}/{filename}"
     download_from_s3(s3_key, local_path)
+    
     try:
         model = joblib.load(local_path)
         classical_models[model_name] = model
-        return model
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading classical model {model_name}: {e}")
+    finally:
+        # Delete the local file after loading it into memory
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+    return model
 
 def load_deep_model(model_name: str):
     filename = f"{model_name}.h5"
     local_path = get_local_path(filename)
     s3_key = f"{DEEP_FOLDER}/{filename}"
     download_from_s3(s3_key, local_path)
+    
     try:
-        model = tf.keras.models.load_model(local_path)
+        model = keras.models.load_model(local_path)
         deep_models[model_name] = model
-        return model
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading deep model {model_name}: {e}")
+    finally:
+        # Delete the local file after loading it into memory
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+    return model
 
 def load_classical_metrics():
     filename = "classical_metrics.json"
     local_path = get_local_path(filename)
     s3_key = f"{CLASSICAL_FOLDER}/{filename}"
     download_from_s3(s3_key, local_path)
+    
     try:
         with open(local_path, 'r') as f:
             metrics = json.load(f)
         return metrics
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading classical metrics: {e}")
+    finally:
+        # Delete the local file
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
 def load_deep_metrics():
     filename = "deep_metrics.json"
     local_path = get_local_path(filename)
     s3_key = f"{DEEP_FOLDER}/{filename}"
     download_from_s3(s3_key, local_path)
+    
     try:
         with open(local_path, 'r') as f:
             metrics = json.load(f)
         return metrics
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading deep metrics: {e}")
+    finally:
+        # Delete the local file
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
 def load_tokenizer():
     filename = "tokenizer.pkl"
     local_path = get_local_path(filename)
     s3_key = f"{DEEP_FOLDER}/{filename}"
     download_from_s3(s3_key, local_path)
+    
     try:
         with open(local_path, 'rb') as f:
             tk = pickle.load(f)
         return tk
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading tokenizer: {e}")
+    finally:
+        # Delete the local file
+        if os.path.exists(local_path):
+            os.remove(local_path)
 
 # ---------------------------
 # Startup Event: Load Metadata
@@ -178,19 +205,23 @@ def predict_sentiment(request: SentimentRequest):
             raise HTTPException(status_code=500, detail=f"Error during classical model prediction: {e}")
         metrics = classical_metrics.get(model_name, {})
         probability = None
+
     elif model_type == "deep":
         model = deep_models.get(model_name) or load_deep_model(model_name)
         if tokenizer is None:
             raise HTTPException(status_code=500, detail="Tokenizer not loaded")
+
         seq = tokenizer.texts_to_sequences([review_text])
         padded_seq = pad_sequences(seq, maxlen=max_len, padding='post', truncating='post')
         try:
             prediction_prob = model.predict(padded_seq)[0][0]
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error during deep model prediction: {e}")
+
         prediction = 1 if prediction_prob >= 0.5 else 0
         probability = float(prediction_prob)
         metrics = deep_metrics.get(model_name, {})
+
     else:
         raise HTTPException(status_code=400, detail="Invalid model_type. Use 'classical' or 'deep'.")
 
